@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  parser:
+    container_name: scqm-parser
+    build: parser
+    command: tail -f /dev/null
+    volumes:
+    - ../java-parser:/usr/src/myapp:z
