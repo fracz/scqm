@@ -19,12 +19,12 @@ public class JavaAster {
     private int count = 0;
 
     public static void main(String[] args) throws Exception {
-
-        new JavaAster().tokenizeAll();
+        System.out.println(args[0]);
+//        new JavaAster().tokenizeAll();
     }
 
     public void tokenizeAll() throws IOException {
-        String projectsDir = "D:\\projects\\refactor-extractor\\results-java\\";
+        String projectsDir = "D:\\projects\\refactor-extractor\\results-jahhva\\";
         System.out.println("");
         try (Stream<Path> paths = Files.walk(Paths.get(projectsDir))) {
             paths
