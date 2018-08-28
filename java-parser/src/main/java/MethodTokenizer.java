@@ -8,18 +8,19 @@ import com.github.javaparser.ast.visitor.VoidVisitor;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.utils.Pair;
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.lang3.StringUtils;
+import com.google.common.io.Files;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.*;
+import java.util.stream.IntStream;
 
 public class MethodTokenizer {
 
-    public static Set<String> ALL_TOKENS = new HashSet<>();
+    private static final Map<String, Integer> TOKENS = new HashMap<>();
 
     private static final Set<String> SIMPLE_NODES = ImmutableSet.of(
             SimpleName.class.getSimpleName(),
@@ -30,15 +31,23 @@ public class MethodTokenizer {
             LineComment.class.getSimpleName()
     );
 
-    public static Map<String, Pair<MethodDeclaration, String>> tokenize(String filePath) {
+    public static Map<String, Pair<MethodDeclaration, List<Integer>>> tokenize(String filePath) {
         return new MethodTokenizer().doTokenize(filePath);
     }
 
-    private Map<String, Pair<MethodDeclaration, String>> methods = new HashMap<>();
+    private Map<String, Pair<MethodDeclaration, List<Integer>>> methods = new HashMap<>();
 
     private Set<String> overloadedMethods = new HashSet<>();
 
-    private Map<String, Pair<MethodDeclaration, String>> doTokenize(String filePath) {
+    private Map<String, Pair<MethodDeclaration, List<Integer>>> doTokenize(String filePath) {
+        try {
+            List<String> lines = Files.readLines(new File("tokens-java.txt"), Charset.forName("utf-8"));
+            TOKENS.clear();
+            IntStream.range(0, lines.size()).forEach(idx -> TOKENS.put(lines.get(idx), idx));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         // creates an input stream for the file to be parsed
         FileInputStream in = null;
         try {
@@ -64,7 +73,7 @@ public class MethodTokenizer {
     private class MethodVisitor extends VoidVisitorAdapter<Void> {
         @Override
         public void visit(MethodDeclaration method, Void arg) {
-            final StringBuilder ast = new StringBuilder();
+            final List<Integer> ast = new ArrayList<>();
 
             if (methods.containsKey(method.getNameAsString())) {
                 overloadedMethods.add(method.getNameAsString());
@@ -75,27 +84,23 @@ public class MethodTokenizer {
                 @Override
                 public void in(Node n, Integer indentLevel) {
                     String token = n.getClass().getSimpleName();
-                    ALL_TOKENS.add(token);
-                    if (SIMPLE_NODES.contains(token)) {
-                        ast.append(StringUtils.repeat('\t', indentLevel) + token + '\n');
-                    } else {
-                        ast.append(StringUtils.repeat('\t', indentLevel) + "(" + token + '\n');
+                    if (!SIMPLE_NODES.contains(token)) {
+                        ast.add(TOKENS.get("("));
                     }
+                    ast.add(TOKENS.get(token));
                 }
 
                 @Override
                 public void out(Node n, Integer indentLevel) {
                     if (!SIMPLE_NODES.contains(n.getClass().getSimpleName())) {
-                        ast.append(StringUtils.repeat('\t', indentLevel) + ")" + '\n');
+                        ast.add(TOKENS.get(")"));
                     }
                 }
             };
 
             method.accept(v, 0);
 
-            String buildAst = ast.toString();//.replaceAll("\\(([^\\)]+)\\)", "$1");
-
-            methods.put(method.getNameAsString(), new Pair<>(method, buildAst));
+            methods.put(method.getNameAsString(), new Pair<>(method, ast));
 
             super.visit(method, arg);
         }
