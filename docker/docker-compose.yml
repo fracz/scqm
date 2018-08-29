@@ -7,3 +7,13 @@ services:
     command: tail -f /dev/null
     volumes:
     - ../java-parser:/usr/src/myapp:z
+    - ../scqm-input:/usr/src/scqm-input:z
+
+  model:
+    container_name: scqm-model
+    build: model
+    command: tail -f /dev/null
+    volumes:
+    - ../trained:/usr/src/trained:z
+    - ../scqm-model:/usr/src/scqm-model:z
+    - ../scqm-input:/usr/src/scqm-input:z

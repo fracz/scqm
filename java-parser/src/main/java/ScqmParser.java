@@ -24,7 +24,7 @@ public class ScqmParser {
 
         try {
             cmd = parser.parse(options, args);
-            Integer maxLength = Integer.parseInt(cmd.getOptionValue("length", "100"));
+            Integer maxLength = Integer.parseInt(cmd.getOptionValue("length", "200"));
             new ScqmParser(maxLength).tokenize();
         } catch (ParseException e) {
             System.out.println(e.getMessage());
@@ -41,14 +41,14 @@ public class ScqmParser {
     }
 
     public void tokenize() {
-        String beforePath = "src/main/java/ScqmParser.java";
+        String beforePath = "src/main/java/MethodTokenizer.java";
         Map<String, Pair<MethodDeclaration, List<Integer>>> methods = MethodTokenizer.tokenize(beforePath);
 //            Map<String, Pair<MethodDeclaration, String>> before = MethodTokenizer.tokenize(beforePath);
 //            Path diffsPath = filePath.getParent().getParent().resolve("diffs");
         List<Integer> lengths = new ArrayList<>();
         List<String> inputs = new ArrayList<>();
         List<String> methodSources = new ArrayList<>();
-        new File("scqm-input").mkdirs();
+        new File("../scqm-input").mkdirs();
         methods.values().forEach(methodBefore -> {
             if (methodBefore.b.size() <= this.maxLength) {
                 lengths.add(methodBefore.b.size());
@@ -58,13 +58,13 @@ public class ScqmParser {
                 methodSources.add(methodBefore.a.toString());
             }
             try {
-                try (PrintWriter out = new PrintWriter("scqm-input/input.csv")) {
+                try (PrintWriter out = new PrintWriter("../scqm-input/input.csv")) {
                     out.print(Joiner.on("\n").join(inputs));
                 }
-                try (PrintWriter out = new PrintWriter("scqm-input/lengths.csv")) {
+                try (PrintWriter out = new PrintWriter("../scqm-input/lengths.csv")) {
                     out.print(Joiner.on(",").join(lengths));
                 }
-                try (PrintWriter out = new PrintWriter("scqm-input/SampleClass.java")) {
+                try (PrintWriter out = new PrintWriter("../scqm-input/SampleClass.java")) {
                     out.print("public class SampleClass {\n" + Joiner.on("\n\n").join(methodSources) + "\n}");
                 }
             } catch (FileNotFoundException e) {
