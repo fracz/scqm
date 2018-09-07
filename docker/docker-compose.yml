@@ -17,3 +17,5 @@ services:
     - ../trained:/usr/src/trained:z
     - ../scqm-model:/usr/src/scqm-model:z
     - ../scqm-input:/usr/src/scqm-input:z
+    ports:
+    - "7276:5000"

@@ -8,7 +8,10 @@ import math
 from random import shuffle
 import sys
 import os
-import argparse
+import argparse, json, time
+
+#from flask_cors import CORS
+from flask import Flask, request
 
 def parseArguments():
     parser = argparse.ArgumentParser()
@@ -95,3 +98,31 @@ with tf.Session(config=config) as sess:
 
     print("Prediction:", sess.run(prediction, feed_dict={train_inputs: test_x,
                                                             seqlen: test_seqlen}))
+
+    app = Flask(__name__)
+    #cors = CORS(app)
+    @app.route("/api/predict", methods=['POST', 'GET'])
+    def predict():
+        start = time.time()
+
+        #data = request.data.decode("utf-8")
+        #if data == "":
+        #    params = request.form
+        #    x_in = json.loads(params['x'])
+        #else:
+        #    params = json.loads(data)
+        #    x_in = params['x']
+
+        ##################################################
+        # Tensorflow part
+        ##################################################
+        pred = sess.run(prediction, feed_dict={train_inputs: test_x, seqlen: test_seqlen})
+        ##################################################
+        # END Tensorflow part
+        ##################################################
+
+        json_data = json.dumps({'pred': pred.tolist()})
+        print("Time spent handling the request: %f" % (time.time() - start))
+
+        return json_data
+    app.run(host='0.0.0.0')
