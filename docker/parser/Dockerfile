@@ -1,5 +1,3 @@
 FROM java:alpine
 
-WORKDIR /usr/src/myapp
-
-RUN ls
+WORKDIR /usr/src/java-parser

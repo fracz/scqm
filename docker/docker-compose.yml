@@ -4,10 +4,9 @@ services:
   parser:
     container_name: scqm-parser
     build: parser
-    command: tail -f /dev/null
+    command: ./gradlew build; java -jar build/libs/gs-spring-boot-0.1.0.jar
     volumes:
-    - ../java-parser:/usr/src/myapp:z
-    - ../scqm-input:/usr/src/scqm-input:z
+    - ../java-parser:/usr/src/java-parser:z
 
   model:
     container_name: scqm-model

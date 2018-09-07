@@ -1,3 +1,4 @@
+package pl.edu.agh.scqm;
 
 import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;

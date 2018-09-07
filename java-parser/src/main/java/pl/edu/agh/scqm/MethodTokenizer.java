@@ -1,3 +1,5 @@
+package pl.edu.agh.scqm;
+
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
@@ -31,15 +33,11 @@ public class MethodTokenizer {
             LineComment.class.getSimpleName()
     );
 
-    public static Map<String, Pair<MethodDeclaration, List<Integer>>> tokenize(String filePath) {
-        return new MethodTokenizer().doTokenize(filePath);
-    }
-
     private Map<String, Pair<MethodDeclaration, List<Integer>>> methods = new HashMap<>();
 
     private Set<String> overloadedMethods = new HashSet<>();
 
-    private Map<String, Pair<MethodDeclaration, List<Integer>>> doTokenize(String filePath) {
+    public Map<String, Pair<MethodDeclaration, List<Integer>>> tokenize(String source) {
         try {
             List<String> lines = Files.readLines(new File("tokens-java.txt"), Charset.forName("utf-8"));
             TOKENS.clear();
@@ -48,16 +46,8 @@ public class MethodTokenizer {
             throw new RuntimeException(e);
         }
 
-        // creates an input stream for the file to be parsed
-        FileInputStream in = null;
-        try {
-            in = new FileInputStream(filePath);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-
         // parse it
-        CompilationUnit cu = JavaParser.parse(in);
+        CompilationUnit cu = JavaParser.parse(source);
 
         // visit and print the methods names
         cu.accept(new MethodVisitor(), null);
