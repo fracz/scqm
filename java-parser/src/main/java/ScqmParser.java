@@ -36,12 +36,8 @@ public class ScqmParser {
         this.maxLength = maxLength;
     }
 
-    public void test() {
-        String a = "2";
-    }
-
     public void tokenize() {
-        String beforePath = "src/main/java/MethodTokenizer.java";
+        String beforePath = "ApplicationContextAwareProcessor.java";
         Map<String, Pair<MethodDeclaration, List<Integer>>> methods = MethodTokenizer.tokenize(beforePath);
 //            Map<String, Pair<MethodDeclaration, String>> before = MethodTokenizer.tokenize(beforePath);
 //            Path diffsPath = filePath.getParent().getParent().resolve("diffs");
