@@ -9,44 +9,12 @@ from random import shuffle
 import sys
 import os
 import argparse, json, time
+import requests
 
 #from flask_cors import CORS
-from flask import Flask, request
-
-def parseArguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("datasetName", help="Dataset name.")
-    parser.add_argument("-nh", "--numHidden", help="Num hidden", type=int, default=128)
-    parser.add_argument("-s", "--steps", help="Training steps.", type=int, default=20)
-    parser.add_argument("-b", "--batchSize", help="Batch size.", type=int, default=64)
-    parser.add_argument("-d", "--displayStep", help="Display step.", type=int, default=10)
-    parser.add_argument("-t", "--tokensCount", help="Vocabulary size.", type=int, default=129)
-    args = parser.parse_args()
-    return args
-
-args = parseArguments()
-
-####################### PARAMS
-vocabulary_size = args.tokensCount # liczba tokenow w kodzie
-embedding_size = 100 # rozmiar wektora wejsciowego (arbitralny chyba?)
-num_hidden = args.numHidden
-num_classes = 2
-training_steps = args.steps
-batch_size = args.batchSize
-display_step = args.displayStep
-learning_rate = 1e-4
+from flask import Flask, request, send_from_directory
 
 ################# DATA INPUT
-
-datasetName = args.datasetName
-
-print("""
-*****************************************************
-Dataset: {}
-Num hidden: {}, Steps: {}, Display step: {}
-*****************************************************
-
-""".format(datasetName, num_hidden, training_steps, display_step))
 
 savePath = '../trained/code-fracz-645/ascqm'
 if not os.path.exists(savePath):
@@ -73,7 +41,7 @@ config = tf.ConfigProto(
 )
 
 app = Flask(__name__)
-
+"""
 print(savePath)
 ascqmGraph = tf.Graph()
 ascqmSession = tf.Session(graph=ascqmGraph)
@@ -122,17 +90,6 @@ with ascqmGraph.as_default():
         return json_data
     predictAscqm()
 
-
-datasetName = args.datasetName
-
-print("""
-*****************************************************
-Dataset: {}
-Num hidden: {}, Steps: {}, Display step: {}
-*****************************************************
-
-""".format(datasetName, num_hidden, training_steps, display_step))
-
 rsavePath = '../trained/code-fracz-645/rscqm'
 if not os.path.exists(savePath):
     os.makedirs(savePath)
@@ -156,7 +113,8 @@ rdataset = RefactorDatasetr()
 
 
 ############################################ RNN
-
+"""
+"""
 rscqmGraph = tf.Graph()
 rscqmSession = tf.Session(graph=rscqmGraph)
 with rscqmGraph.as_default():
@@ -211,5 +169,14 @@ with rscqmGraph.as_default():
         return json_data
 
     predictRscqm()
+"""
+@app.route("/parse", methods=['POST'])
+def parser():
+    r = requests.post("http://parser:8080/parse", data={'source': request.form.get('source')})
+    return r.text
+
+@app.route("/", methods=['GET'])
+def index():
+    return send_from_directory('.', 'index.html')
 
 app.run(host='0.0.0.0')

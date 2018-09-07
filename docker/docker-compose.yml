@@ -4,14 +4,17 @@ services:
   parser:
     container_name: scqm-parser
     build: parser
-    command: ./gradlew build; java -jar build/libs/gs-spring-boot-0.1.0.jar
+    command: sh -c "/usr/src/java-parser/gradlew build && java -jar /usr/src/java-parser/build/libs/gs-spring-boot-0.1.0.jar"
     volumes:
     - ../java-parser:/usr/src/java-parser:z
+    - /root/.gradle
+    ports:
+    - "7277:8080"
 
   model:
     container_name: scqm-model
     build: model
-    command: tail -f /dev/null
+    command: python scqm.py asdf
     volumes:
     - ../trained:/usr/src/trained:z
     - ../scqm-model:/usr/src/scqm-model:z
