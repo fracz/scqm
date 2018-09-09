@@ -8,8 +8,6 @@ services:
     volumes:
     - ../java-parser:/usr/src/java-parser:z
     - /root/.gradle
-    ports:
-    - "7277:8080"
 
   model:
     container_name: scqm-model

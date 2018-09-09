@@ -17,31 +17,10 @@ from flask import Flask, request, send_from_directory
 ################# DATA INPUT
 
 savePath = '../trained/code-fracz-645/ascqm'
-if not os.path.exists(savePath):
-    os.makedirs(savePath)
-
-class RefactorDataset():
-    def __init__(self):
-        self.data = np.genfromtxt('../scqm-input/input.csv', delimiter=',')
-        self.seqlen = np.genfromtxt('../scqm-input/lengths.csv', delimiter=',')
-        self.max_seqlen = len(self.data[0])
-        self.test_len = math.floor(len(self.data))
-        print("Dataset read success! Size: " + str(self.max_seqlen) + 'x' + str(len(self.data)))
-
-    def test(self):
-        return self.data, self.seqlen
-
-dataset = RefactorDataset()
 
 ############################################ RNN
-
-config = tf.ConfigProto(
-#    device_count = {'GPU': 2}
-#    , log_device_placement=True
-)
-
 app = Flask(__name__)
-"""
+
 print(savePath)
 ascqmGraph = tf.Graph()
 ascqmSession = tf.Session(graph=ascqmGraph)
@@ -60,13 +39,20 @@ with ascqmGraph.as_default():
     print("model restore")
     ascqm_saver.restore(ascqmSession, tf.train.latest_checkpoint(savePath))
 
-    print("testin")
-    ascqm_test_x, ascqm_test_seqlen = dataset.test()
-
     #cors = CORS(app)
     @app.route("/ascqm", methods=['POST', 'GET'])
     def predictAscqm():
         start = time.time()
+
+        r = requests.post("http://parser:8080/parse", data={'source': request.form.get('source')})
+        data = r.json()
+        for i, methodDef in enumerate(data):
+            if len(data[i]['tokens']) <= 200:
+                arr = np.array([data[i]['tokens']])
+                input = np.pad(arr, ((0,0), (0, 200-len(data[i]['tokens']))), 'constant')
+                seqlen = np.array([len(data[i]['tokens'])])
+                pred = ascqmSession.run(ascqm_prediction, feed_dict={ascqm_train_inputs: input, ascqm_seqlen: seqlen})
+                data[i]['prediction'] = pred.tolist()
 
         #data = request.data.decode("utf-8")
         #if data == "":
@@ -79,41 +65,24 @@ with ascqmGraph.as_default():
         ##################################################
         # Tensorflow part
         ##################################################
-        pred = ascqmSession.run(ascqm_prediction, feed_dict={ascqm_train_inputs: ascqm_test_x, ascqm_seqlen: ascqm_test_seqlen})
+
         ##################################################
         # END Tensorflow part
         ##################################################
 
-        json_data = json.dumps({'pred': pred.tolist()})
+        json_data = json.dumps(data)
         print("Time spent handling the request: %f" % (time.time() - start))
 
         return json_data
-    predictAscqm()
 
 rsavePath = '../trained/code-fracz-645/rscqm'
-if not os.path.exists(savePath):
-    os.makedirs(savePath)
-
-class RefactorDatasetr():
-    def __init__(self):
-        self.data_before = np.genfromtxt('../scqm-input/input-before.csv', delimiter=',')
-        self.data_after = np.genfromtxt('../scqm-input/input-after.csv', delimiter=',')
-        self.lengths_before = np.genfromtxt('../scqm-input/lengths-before.csv', delimiter=',')
-        self.lengths_after = np.genfromtxt('../scqm-input/lengths-after.csv', delimiter=',')
-        self.max_seqlen = len(self.data_before[0])
-        print("Input size: " + str(self.max_seqlen) + 'x' + str(len(self.data_before)))
-
-    def test(self):
-        return self.data_before, self.data_after, self.lengths_before, self.lengths_after
-
-rdataset = RefactorDatasetr()
 
 #batch_before, batch_after, seqlen_before, seqlen_after, batch_labels = dataset.next(5)
 #print("BEFORE:\n", batch_before, seqlen_before, "\nAFTER:\n", batch_after, seqlen_after, "\nLABELS:\n", batch_labels)
 
 
 ############################################ RNN
-"""
+
 """
 rscqmGraph = tf.Graph()
 rscqmSession = tf.Session(graph=rscqmGraph)
@@ -173,7 +142,11 @@ with rscqmGraph.as_default():
 @app.route("/parse", methods=['POST'])
 def parser():
     r = requests.post("http://parser:8080/parse", data={'source': request.form.get('source')})
-    return r.text
+    data = r.json()
+    for i, methodDef in enumerate(data):
+        arr = np.array([data[i]['tokens']])
+        data[i]['zeros'] = np.pad(arr, ((0,0), (0, max(0, 200-len(arr)))), 'constant').tolist()
+    return json.dumps(data)
 
 @app.route("/", methods=['GET'])
 def index():
