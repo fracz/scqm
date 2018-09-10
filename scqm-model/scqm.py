@@ -11,68 +11,35 @@ import os
 import argparse, json, time
 import requests
 
-#from flask_cors import CORS
 from flask import Flask, request, send_from_directory
 
-################# DATA INPUT
-
-savePath = '../trained/code-fracz-645/ascqm'
-
-############################################ RNN
 app = Flask(__name__)
 
-print(savePath)
+ascqmPath = '../trained/code-fracz-645/ascqm-500'
 ascqmGraph = tf.Graph()
 ascqmSession = tf.Session(graph=ascqmGraph)
-print("model meta")
 
 with ascqmGraph.as_default():
-    ascqm_saver = tf.train.import_meta_graph(savePath + '/model.meta')
-
+    ascqm_saver = tf.train.import_meta_graph(ascqmPath + '/model.meta')
     ascqm_train_inputs = ascqmGraph.get_tensor_by_name("train_inputs:0")
     ascqm_train_outputs = ascqmGraph.get_tensor_by_name("train_outputs:0")
     ascqm_seqlen = ascqmGraph.get_tensor_by_name("seqlen:0")
     ascqm_prediction = ascqmGraph.get_tensor_by_name("prediction:0")
+    inputSize = ascqm_train_inputs.get_shape().as_list()[1]
+    ascqm_saver.restore(ascqmSession, tf.train.latest_checkpoint(ascqmPath))
 
-#    print(str([n.name for n in tf.get_default_graph().as_graph_def().node]))
-
-    print("model restore")
-    ascqm_saver.restore(ascqmSession, tf.train.latest_checkpoint(savePath))
-
-    #cors = CORS(app)
     @app.route("/ascqm", methods=['POST', 'GET'])
     def predictAscqm():
-        start = time.time()
-
         r = requests.post("http://parser:8080/parse", data={'source': request.get_json()['source']})
         data = r.json()
         for i, methodDef in enumerate(data):
-            if len(data[i]['tokens']) <= 200:
+            if len(data[i]['tokens']) <= inputSize:
                 arr = np.array([data[i]['tokens']])
-                input = np.pad(arr, ((0,0), (0, 200-len(data[i]['tokens']))), 'constant')
+                input = np.pad(arr, ((0,0), (0, inputSize-len(data[i]['tokens']))), 'constant')
                 seqlen = np.array([len(data[i]['tokens'])])
                 pred = ascqmSession.run(ascqm_prediction, feed_dict={ascqm_train_inputs: input, ascqm_seqlen: seqlen})
                 data[i]['prediction'] = pred.tolist()[0]
-
-        #data = request.data.decode("utf-8")
-        #if data == "":
-        #    params = request.form
-        #    x_in = json.loads(params['x'])
-        #else:
-        #    params = json.loads(data)
-        #    x_in = params['x']
-
-        ##################################################
-        # Tensorflow part
-        ##################################################
-
-        ##################################################
-        # END Tensorflow part
-        ##################################################
-
         json_data = json.dumps(data)
-        print("Time spent handling the request: %f" % (time.time() - start))
-
         return json_data
 
 rsavePath = '../trained/code-fracz-645/rscqm'
