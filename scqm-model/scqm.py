@@ -44,7 +44,7 @@ with ascqmGraph.as_default():
     def predictAscqm():
         start = time.time()
 
-        r = requests.post("http://parser:8080/parse", data={'source': request.form.get('source')})
+        r = requests.post("http://parser:8080/parse", data={'source': request.get_json()['source']})
         data = r.json()
         for i, methodDef in enumerate(data):
             if len(data[i]['tokens']) <= 200:
@@ -52,7 +52,7 @@ with ascqmGraph.as_default():
                 input = np.pad(arr, ((0,0), (0, 200-len(data[i]['tokens']))), 'constant')
                 seqlen = np.array([len(data[i]['tokens'])])
                 pred = ascqmSession.run(ascqm_prediction, feed_dict={ascqm_train_inputs: input, ascqm_seqlen: seqlen})
-                data[i]['prediction'] = pred.tolist()
+                data[i]['prediction'] = pred.tolist()[0]
 
         #data = request.data.decode("utf-8")
         #if data == "":

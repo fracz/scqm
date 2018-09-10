@@ -8,19 +8,89 @@
 </head>
 <body>
 
-<div class="container">
-  <h1>SCQM Java Class Parser</h1>
+<div class="container" id="app">
+  <h1>aSCQM - absolute Source Code Quality Model</h1>
 
-  <form action="/ascqm" method="post">
-
+  <form @submit.prevent="sendAscqm()" v-if="!result">
     <div class="form-group">
       <label>Java source code</label>
-      <textarea name="source" cols="30" rows="30" class="form-control"></textarea>
+      <textarea name="source" cols="30" rows="30" class="form-control" v-model="source"></textarea>
     </div>
-
+    <div class="alert alert-danger" v-if="error">
+      <strong>Could not calculate the result.</strong> Have you submitted a valid Java class?
+    </div>
     <button class="btn btn-lg btn-primary" type="submit">Submit</button>
   </form>
 
+  <div v-else>
+    <h2>Analysis results</h2>
+    <div class="form-group"><a class="btn btn-default" @click="result = undefined">Analyze another class</a></div>
+    <h3 v-if="overallAscqmPg !== undefined">Overall quality score P<sub>g</sub> <span class="small">(good quality)</span>: <strong>{{ overallAscqmPg | percentage }}</strong>,
+    P<sub>b</sub> <span class="small">(bad quality)</span>: <strong>{{ 1-overallAscqmPg | percentage }}</strong></h3>
+    <div class="list-group">
+      <div :class="'list-group-item list-group-item-' + (methodDef.prediction ? (methodDef.prediction[0] > .5 ? 'success' : 'danger') : '')" v-for="methodDef in result">
+        <h3 style="margin-top: 0"><code>{{ methodDef.methodName }}</code></h3>
+        <pre><code>{{methodDef.sourceCode}}</pre></code>
+        AST Length: <strong>{{methodDef.tokens.length}}</strong>
+        <div v-if="methodDef.prediction">
+          P<sub>G</sub> <span class="small">(good quality)</span>: <strong>{{ methodDef.prediction[0] | percentage }}</strong><br>
+          P<sub>B</sub> <span class="small">(bad quality)</span>: <strong>{{ methodDef.prediction[1] | percentage }}</strong><br>
+        </div>
+      </div>
+    </div>
+    <a class="btn btn-default" @click="result = undefined">Analyze another class</a>
+  </div>
+
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+<script type="text/javascript">
+
+Vue.filter('percentage', function(value, decimals) {
+  if(!value) {
+    value = 0;
+  }
+
+  if(!decimals) {
+    decimals = 0;
+  }
+
+  value = value * 100;
+  value = Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+  value = value + '%';
+  return value;
+});
+
+var app = new Vue({
+el: '#app',
+data: {
+  mode: 'ascqm',
+  source: '',
+  error: false,
+  result: undefined,
+},
+methods: {
+  sendAscqm() {
+    this.error = false;
+    this.$http.post('/ascqm', {source: this.source})
+    .then(response => this.result = response.body)
+    .then(() => this.source = '')
+    .catch(() => this.error = true);
+  }
+},
+computed: {
+  overallAscqmPg(){
+    if (this.result) {
+      const pbs = this.result.filter(m => m.prediction).map(m => m.prediction[0]);
+      if (pbs.length) {
+        const sum = pbs.reduce((p, a) => p + a);
+        return sum / pbs.length;
+      }
+    }
+  }
+}
+});
+</script>
 </body>
 </html>
