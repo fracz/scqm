@@ -9,38 +9,102 @@
 <body>
 
 <div class="container" id="app">
-  <h1>aSCQM - absolute Source Code Quality Model</h1>
-
-  <form @submit.prevent="sendAscqm()" v-if="!result">
-    <div class="form-group">
-      <label>Java source code</label>
-      <textarea name="source" cols="30" rows="30" class="form-control" v-model="source"></textarea>
-    </div>
-    <div class="alert alert-danger" v-if="error">
-      <strong>Could not calculate the result.</strong> Have you submitted a valid Java class?
-    </div>
-    <button class="btn btn-lg btn-primary" type="submit">Submit</button>
-  </form>
-
-  <div v-else>
-    <h2>Analysis results</h2>
-    <div class="form-group"><a class="btn btn-default" @click="result = undefined">Analyze another class</a></div>
-    <h3 v-if="overallAscqmPg !== undefined">Overall quality score P<sub>g</sub> <span class="small">(good quality)</span>: <strong>{{ overallAscqmPg | percentage }}</strong>,
-    P<sub>b</sub> <span class="small">(bad quality)</span>: <strong>{{ 1-overallAscqmPg | percentage }}</strong></h3>
-    <div class="list-group">
-      <div :class="'list-group-item list-group-item-' + (methodDef.prediction ? (methodDef.prediction[0] > .5 ? 'success' : 'danger') : '')" v-for="methodDef in result">
-        <h3 style="margin-top: 0"><code>{{ methodDef.methodName }}</code></h3>
-        <pre><code>{{methodDef.sourceCode}}</pre></code>
-        AST Length: <strong>{{methodDef.tokens.length}}</strong>
-        <div v-if="methodDef.prediction">
-          P<sub>G</sub> <span class="small">(good quality)</span>: <strong>{{ methodDef.prediction[0] | percentage }}</strong><br>
-          P<sub>B</sub> <span class="small">(bad quality)</span>: <strong>{{ methodDef.prediction[1] | percentage }}</strong><br>
-        </div>
-      </div>
-    </div>
-    <a class="btn btn-default" @click="result = undefined">Analyze another class</a>
+  <div class="btn-group">
+    <a :class="'btn btn-primary ' + (model == 'ascqm' ? 'active' : '')" @click="model = 'ascqm'">aSCQM</a>
+    <a :class="'btn btn-primary ' + (model == 'rscqm' ? 'active' : '')" @click="model = 'rscqm'">rSCQM</a>
   </div>
 
+  <div v-if="model == 'ascqm'">
+
+    <h1>aSCQM - absolute Source Code Quality Model</h1>
+
+    <form @submit.prevent="sendAscqm()" v-if="!result">
+      <div class="form-group">
+        <label>Java source code</label>
+        <textarea name="source" cols="30" rows="20" class="form-control" v-model="source"></textarea>
+      </div>
+      <div class="alert alert-danger" v-if="error">
+        <strong>Could not calculate the result.</strong> Have you submitted a valid Java class?
+      </div>
+      <button class="btn btn-lg btn-primary" type="submit">Submit</button>
+    </form>
+
+    <div v-else>
+      <h2>Analysis results</h2>
+      <div class="form-group"><a class="btn btn-default" @click="result = undefined">Analyze another class</a></div>
+      <h3 v-if="overallAscqmPg !== undefined">Overall quality score P<sub>g</sub> <span class="small">(good quality)</span>: <strong>{{ overallAscqmPg | percentage }}</strong>,
+      P<sub>b</sub> <span class="small">(bad quality)</span>: <strong>{{ 1-overallAscqmPg | percentage }}</strong></h3>
+      <div class="list-group">
+        <div :class="'list-group-item list-group-item-' + (methodDef.prediction ? (methodDef.prediction[0] > .5 ? 'success' : 'danger') : '')" v-for="methodDef in result">
+          <h3 style="margin-top: 0"><code>{{ methodDef.methodName }}</code></h3>
+          <pre><code>{{methodDef.sourceCode}}</pre></code>
+          AST Length: <strong>{{methodDef.tokens.length}}</strong>
+          <div v-if="methodDef.prediction">
+            P<sub>G</sub> <span class="small">(good quality)</span>: <strong>{{ methodDef.prediction[0] | percentage }}</strong><br>
+            P<sub>B</sub> <span class="small">(bad quality)</span>: <strong>{{ methodDef.prediction[1] | percentage }}</strong><br>
+          </div>
+        </div>
+      </div>
+      <a class="btn btn-default" @click="result = undefined">Analyze another class</a>
+    </div>
+  </div>
+
+  <div v-else>
+    <h1>rSCQM - relative Source Code Quality Model</h1>
+
+    <form @submit.prevent="sendRscqm()" v-if="!result">
+      <div class="row">
+        <div class="col-xs-6">
+          <div class="form-group">
+            <label>Java source code (before a change)</label>
+            <textarea name="source" cols="30" rows="20" class="form-control" v-model="sourceBefore"></textarea>
+          </div>
+        </div>
+        <div class="col-xs-6">
+          <div class="form-group">
+            <label>Java source code (after a change)</label>
+            <textarea name="source" cols="30" rows="20" class="form-control" v-model="sourceAfter"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-danger" v-if="error">
+        <strong>Could not calculate the result.</strong> Have you submitted a valid Java classes?
+      </div>
+      <button class="btn btn-lg btn-primary" type="submit">Submit</button>
+    </form>
+
+    <div v-else>
+      <h2>Analysis results</h2>
+      <div class="form-group"><a class="btn btn-default" @click="result = undefined">Analyze another class</a></div>
+      <h3 v-if="overallRscqmPg !== undefined">Overall quality score P<sub>g</sub> <span class="small">(good quality)</span>: <strong>{{ overallRscqmPg | percentage }}</strong>,
+      P<sub>b</sub> <span class="small">(bad quality)</span>: <strong>{{ 1-overallRscqmPg | percentage }}</strong></h3>
+      <div class="list-group" v-if="result.predictions.length > 0">
+        <div :class="'list-group-item list-group-item-' + (p.prediction[0] > .5 ? 'success' : 'danger')" v-for="p in result.predictions">
+          <h3 style="margin-top: 0"><code>{{ p.methodName }}</code></h3>
+          <div class="row">
+            <div class="col-xs-6">
+              <h5>Before the change</h5>
+              <pre><code>{{p.methodBefore.sourceCode}}</pre></code>
+              <div class="text-center">AST Length: <strong>{{p.methodBefore.tokens.length}}</strong></div>
+            </div>
+            <div class="col-xs-6">
+              <h5>After the change</h5>
+              <pre><code>{{p.methodAfter.sourceCode}}</pre></code>
+              <div class="text-center">AST Length: <strong>{{p.methodAfter.tokens.length}}</strong></div>
+            </div>
+          </div>
+          <div class="text-center">
+            P<sub>G</sub> <span class="small">(good quality)</span>: <strong>{{ p.prediction[0] | percentage }}</strong><br>
+            P<sub>B</sub> <span class="small">(bad quality)</span>: <strong>{{ p.prediction[1] | percentage }}</strong><br>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-warning" v-else>
+        <strong>rSCQM model has returned no predictions.</strong> Either the given classes have no changes in their source code or they do not have common methods.
+      </div>
+      <a class="btn btn-default" @click="result = undefined">Analyze another class</a>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue"></script>
@@ -65,8 +129,10 @@ Vue.filter('percentage', function(value, decimals) {
 var app = new Vue({
 el: '#app',
 data: {
-  mode: 'ascqm',
+  model: 'ascqm',
   source: '',
+  sourceBefore: '',
+  sourceAfter: '',
   error: false,
   result: undefined,
 },
@@ -75,7 +141,12 @@ methods: {
     this.error = false;
     this.$http.post('/ascqm', {source: this.source})
     .then(response => this.result = response.body)
-    .then(() => this.source = '')
+    .catch(() => this.error = true);
+  },
+  sendRscqm() {
+    this.error = false;
+    this.$http.post('/rscqm', {sourceBefore: this.sourceBefore, sourceAfter: this.sourceAfter})
+    .then(response => this.result = response.body)
     .catch(() => this.error = true);
   }
 },
@@ -83,6 +154,15 @@ computed: {
   overallAscqmPg(){
     if (this.result) {
       const pbs = this.result.filter(m => m.prediction).map(m => m.prediction[0]);
+      if (pbs.length) {
+        const sum = pbs.reduce((p, a) => p + a);
+        return sum / pbs.length;
+      }
+    }
+  },
+  overallRscqmPg(){
+    if (this.result) {
+      const pbs = this.result.predictions.map(m => m.prediction[0]);
       if (pbs.length) {
         const sum = pbs.reduce((p, a) => p + a);
         return sum / pbs.length;
